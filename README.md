@@ -49,7 +49,7 @@ npm install
 To run a test written in TypeScript, we first have to transpile the TypeScript code into JavaScript and bundle the project
 
 ```bash
-npm start
+npm build
 ```
 
 This command creates the final test files to the `./dist` folder.
@@ -57,7 +57,7 @@ This command creates the final test files to the `./dist` folder.
 Once that is done, we can run our script the same way we usually do, for instance:
 
 ```bash
-k6 run dist/get-200-status-test.js
+k6 run dist/tidb-test.js
 ```
 
 ## Writing own tests

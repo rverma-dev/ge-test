@@ -1,0 +1,149 @@
+/* @ts-ignore */
+import sql from 'k6/x/sql';
+/* @ts-ignore */
+import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
+import exec from 'k6/execution';
+import { Counter } from 'k6/metrics';
+
+// Database connection setup
+const db = sql.open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+const tables = new Counter('total_tables');
+const SPLIT = ', ';
+
+let scenarios = {
+    createGE: {
+        executor: 'ramping-vus',
+        exec: 'createGE',
+        startVUs: 50,
+        stages: [
+            { duration: '10s', target: 50 }, // Stay at 50 VUs for the first 5 minutes
+            { duration: '20s', target: 20 }, // Reduce to 20 VUs over the next 10 minutes
+            { duration: '10s', target: 10 }   // Further reduce to 10 VUs for the last 5 minutes
+        ],
+        gracefulRampDown: '30s',
+    }
+};
+
+// Options configuration
+export const options = {
+    discardResponseBodies: true,
+    scenarios: scenarios,
+};
+
+export function setup() {
+    db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        ge_name VARCHAR(255) NOT NULL,
+        columns TEXT NOT NULL,
+        indexes TEXT NOT NULL
+    );`);
+}
+
+// Teardown function
+export function teardown() {
+    db.close();
+}
+
+// Function to generate random columns
+function generateRandomColumns(): string[] {
+    const types = ['VARCHAR(255)', 'INT', 'DATETIME(3)'];
+    let columns = [];
+    let numCols = randomIntBetween(3, 10); // Generate between 3 to 10 columns
+    let columnNames = new Set(); // To track unique column names
+
+    while (columns.length < numCols) {
+        let type = types[randomIntBetween(0, types.length - 1)];
+        let colName = `col_${randomIntBetween(1000, 9999)}`;
+
+        // Ensure the column name is unique
+        if (!columnNames.has(colName)) {
+            columns.push(`${colName} ${type}`);
+            columnNames.add(colName); // Add to the set of known names
+        }
+    }
+
+    return columns;
+}
+
+// Function to select random indexes from the columns
+function selectRandomIndexes(columns: string[], maxIndexes: number): string[] {
+    let columnNames = columns.map(col => col.split(' ')[0]);
+    let selectedIndexes = new Set(); // To keep track of selected indexes
+    let indexes = [];
+
+    // Adjust to exclude primary key column (assuming it's the first column)
+    columnNames.shift();
+
+    while (indexes.length < Math.min(maxIndexes, columnNames.length)) {
+        let randomIndex = randomIntBetween(0, columnNames.length - 1);
+        let indexName = columnNames[randomIndex];
+
+        // Check if already selected, if not, add to the indexes array
+        if (!selectedIndexes.has(indexName)) {
+            indexes.push(indexName);
+            selectedIndexes.add(indexName);
+        }
+    }
+
+    return indexes;
+}
+
+// Create GE scenario
+export function createGE(): void {
+    const tenantId = 1 + exec.vu.idInTest;
+    const geName = `ge_${exec.vu.iterationInScenario}`;
+    const columns = generateRandomColumns();
+    const indexes = selectRandomIndexes(columns, 4); // Select up to 4 columns for indexing
+    let primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
+    let createTableSQL = `CREATE TABLE tenant_${tenantId}_${geName} (${columns.join(SPLIT)}, PRIMARY KEY (${primaryKeyCol}));`;
+    let insertMetaSQL = `INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (${tenantId},'${geName}','${columns.join(SPLIT)}','${indexes.join(SPLIT)}');`
+
+    // Create table
+    try {
+        db.exec(createTableSQL);
+        console.log(`Table tenant_${tenantId}_${geName} created successfully`);
+
+        // Create indexes
+        indexes.forEach(indexCol => {
+            let createIndexSQL = `CREATE INDEX IF NOT EXISTS idx_${indexCol} ON tenant_${tenantId}_${geName} (${indexCol});`;
+            try {
+                db.exec(createIndexSQL);
+                console.log(`Index created successfully on column: ${indexCol}`);
+            } catch (error) {
+                console.error(`Error creating index on column ${indexCol} for tenant_${tenantId}_${geName}: ${error}`);
+                console.error(`Failed SQL: ${createIndexSQL}`);
+            }
+        });
+
+        // Insert metadata
+        try {
+            db.exec(insertMetaSQL);
+            tables.add(1);
+        } catch (error) {
+            console.error(`Error inserting metadata for tenant_${tenantId}_${geName}: ${error}`);
+            console.error(`Failed SQL: ${insertMetaSQL}`);
+        }
+    } catch (error) {
+        if (error.value.number != 1050) {
+            console.error(`Error creating table tenant_${tenantId}_${geName}: ${error}`);
+            console.error(`Failed SQL: ${createTableSQL}`);
+            return; // Exit the function if table creation fails
+        }
+    }
+}
+
+/* 
+Result
+
+data_received........: 0 B 0 B/s
+data_sent............: 0 B 0 B/s
+iteration_duration...: avg=45.85s min=84.33µs med=48.83s max=1m7s p(90)=1m5s p(95)=1m6s
+iterations...........: 29  0.410568/s
+total_tables.........: 29  0.410568/s
+vus..................: 1   min=1      max=50
+vus_max..............: 50  min=50     max=50
+
+DB side avg create 
+
+*/
