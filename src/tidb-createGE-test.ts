@@ -14,11 +14,12 @@ let scenarios = {
     createGE: {
         executor: 'ramping-vus',
         exec: 'createGE',
-        startVUs: 50,
+        startVUs: 20,
+        startTime: '0',
         stages: [
-            { duration: '10s', target: 50 }, // Stay at 50 VUs for the first 5 minutes
-            { duration: '20s', target: 20 }, // Reduce to 20 VUs over the next 10 minutes
-            { duration: '10s', target: 10 }   // Further reduce to 10 VUs for the last 5 minutes
+            { duration: '1m', target: 50 }, // Stay at 50 VUs for the first 5 minutes
+            { duration: '4m', target: 20 }, // Reduce to 20 VUs over the next 10 minutes
+            { duration: '1m', target: 10 }   // Further reduce to 10 VUs for the last 5 minutes
         ],
         gracefulRampDown: '30s',
     }
@@ -138,11 +139,12 @@ Result
 
 data_received........: 0 B 0 B/s
 data_sent............: 0 B 0 B/s
-iteration_duration...: avg=45.85s min=84.33µs med=48.83s max=1m7s p(90)=1m5s p(95)=1m6s
-iterations...........: 29  0.410568/s
-total_tables.........: 29  0.410568/s
-vus..................: 1   min=1      max=50
+iteration_duration...: avg=51.16s min=68.45µs med=57.7s max=1m12s p(90)=1m7s p(95)=1m9s
+iterations...........: 230 0.602096/s
+total_tables.........: 230 0.602096/s
+vus..................: 0   min=0      max=50
 vus_max..............: 50  min=50     max=50
+
 
 DB side avg create 
 

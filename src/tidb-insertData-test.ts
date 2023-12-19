@@ -21,7 +21,7 @@ let scenarios = {
     insertData: {
         executor: 'ramping-vus',
         exec: 'insertData',
-        startTime: '0m', // Start after 5 minutes
+        startTime: '3m', // Start after 5 minutes
         startVUs: 0,
         stages: [
             { duration: '2m', target: 50 }, // Ramp up to 50 VUs over the first 5 minutes
@@ -114,12 +114,10 @@ Result
 
 data_received........: 0 B   0 B/s
 data_sent............: 0 B   0 B/s
-iteration_duration...: avg=108.14ms min=79.7µs med=102.58ms max=1.41s p(90)=111.62ms p(95)=118.58ms
-iterations...........: 69364 288.131345/s
-rows_inserts.........: 67416 280.039541/s
+iteration_duration...: avg=118.81ms min=115.7µs med=111.18ms max=2.21s p(90)=132.32ms p(95)=149.11ms
+iterations...........: 63142 150.1965/s
+rows_inserts.........: 62799 149.380602/s
 vus..................: 26    min=0        max=50
 vus_max..............: 50    min=50       max=50
-
-// DB side avg 10ms
 
 */

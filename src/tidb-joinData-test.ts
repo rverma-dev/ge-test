@@ -20,8 +20,8 @@ let scenarios = {
     readJoinData: {
         executor: 'ramping-vus',
         exec: 'readJoinData',
-        startTime: '0m', // Start after 15 minutes
-        startVUs: 0,
+        startTime: '10m', // Start after 15 minutes
+        startVUs: 50,
         stages: [
             { duration: '5m', target: 50 }  // Ramp up to 50 VUs over 5 minutes
         ],
@@ -125,3 +125,15 @@ export function readJoinData() {
     }
 }
 
+/* 
+Result
+
+data_received........: 0 B   0 B/s
+data_sent............: 0 B   0 B/s
+iteration_duration...: avg=1.17s min=93.83µs med=363.85ms max=35.11s p(90)=786.17ms p(95)=1.69s
+iterations...........: 13555 14.644529/s
+join_reads...........: 8600  9.291254/s
+vus..................: 2     min=0       max=50
+vus_max..............: 50    min=50      max=50
+
+*/

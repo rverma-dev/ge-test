@@ -21,11 +21,11 @@ let scenarios = {
     readData: {
         executor: 'ramping-vus',
         exec: 'readData',
-        startTime: '0m', // Start after 10 minutes
+        startTime: '6m', // Start after 10 minutes
         startVUs: 50,
         stages: [
-            { duration: '1m', target: 50 }, // Ramp up to 40 VUs over the first 5 minutes
-            { duration: '2m', target: 100 }  // Stay at 50 VUs for the next 5 minutes
+            { duration: '2m', target: 50 }, // Ramp up to 40 VUs over the first 5 minutes
+            { duration: '2m', target: 80 }  // Stay at 50 VUs for the next 5 minutes
         ],
         gracefulRampDown: '30s',
     },
@@ -130,6 +130,15 @@ export function readData() {
 
 /* 
 Results
-1. Unresponsive at 70 vus
+
+data_received........: 0 B  0 B/s
+data_sent............: 0 B  0 B/s
+iteration_duration...: avg=3.54s min=116.87µs med=374.66ms max=1m38s p(90)=1.44s p(95)=31.67s
+iterations...........: 4279 6.774115/s
+rows_reads...........: 3962 6.27227/s
+vus..................: 4    min=0      max=79
+vus_max..............: 80  
+
+1. Unresponsive at 65-70, with constant timeouts
 
 */
