@@ -28,4 +28,3 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: ghcr.io/${{ github.repository }}/k6:latest
-``
