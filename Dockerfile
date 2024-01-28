@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine3.18 AS builder
+FROM golang:1.21 AS builder
 ENV K6_VERSION=v0.48.0
 ENV XK6_VERSION=v0.10.0
 RUN apk add --no-cache build-base git
