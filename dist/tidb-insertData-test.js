@@ -125,7 +125,14 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
 
 // Database connection setup
-var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+console.log(dbPassword);
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
 var SPLIT = ', ';
 var scenarios = {
@@ -162,15 +169,22 @@ function setup() {
   } else {
     console.log("Table 'ge_metadata' exists. Proceeding with the script.");
   }
+  var rowCountQuery = "SELECT AUTO_INCREMENT \n                        FROM information_schema.tables \n                        WHERE table_schema = 'test' \n                        AND table_name = 'ge_metadata';";
+  var rowCountResult = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, rowCountQuery);
+  var rowCount = rowCountResult[0].AUTO_INCREMENT;
+
   // Additional setup logic, if any...
+  return {
+    rowCount: rowCount
+  };
 }
 
 // Teardown function
 function teardown() {
   db.close();
 }
-function readGeData(limit) {
-  var query = "SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata ORDER BY RAND() LIMIT ".concat(limit, ";");
+function readGeData(id) {
+  var query = "SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata where id=".concat(id, ";");
   var resultSet = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, query);
   var geData = [];
   var _iterator = _createForOfIteratorHelper(resultSet),
@@ -210,9 +224,10 @@ function generateInsertQuery(tenantId, geName, columns) {
 }
 
 // Function to insert data into a GE table
-function insertData() {
+function insertData(data) {
   // Randomly select a GE metadata record
-  var _readGeData$ = readGeData(1)[0],
+  var randomID = (0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(1, data.rowCount);
+  var _readGeData$ = readGeData(randomID)[0],
     tenant_id = _readGeData$.tenant_id,
     ge_name = _readGeData$.ge_name,
     columns = _readGeData$.columns;

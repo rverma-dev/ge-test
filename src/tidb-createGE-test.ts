@@ -5,10 +5,17 @@ import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 import exec from 'k6/execution';
 import { Counter } from 'k6/metrics';
 
-// Database connection setup
-const db = sql.open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
-const tables = new Counter('total_tables');
 const SPLIT = ', ';
+// Database connection setup
+const dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+const dbPort = __ENV.DB_PORT || "4000";
+const dbName = __ENV.DB_NAME || "test";
+const dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+const dbPassword = __ENV.DB_PASSWORD || "password";
+
+const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
+const db = sql.open('mysql', connectionString);
+const tables = new Counter('total_tables');
 
 let scenarios = {
     createGE: {
@@ -95,7 +102,7 @@ export function createGE(): void {
     const tenantId = 1 + exec.vu.idInTest;
     const geName = `ge_${exec.vu.iterationInScenario}`;
     const columns = generateRandomColumns();
-    const indexes = selectRandomIndexes(columns, 4); // Select up to 4 columns for indexing
+    const indexes = selectRandomIndexes(columns, 2); // Select up to 2 columns for indexing
     let primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
     let createTableSQL = `CREATE TABLE tenant_${tenantId}_${geName} (${columns.join(SPLIT)}, PRIMARY KEY (${primaryKeyCol}));`;
     let insertMetaSQL = `INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (${tenantId},'${geName}','${columns.join(SPLIT)}','${indexes.join(SPLIT)}');`

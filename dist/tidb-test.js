@@ -30,11 +30,16 @@ var metrics_ = __webpack_require__(610);
 
 
 
-
-// Database connection setup
-var db = sql_default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
-var tables = new metrics_.Counter('total_tables');
 var SPLIT = ', ';
+// Database connection setup
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = sql_default().open('mysql', connectionString);
+var tables = new metrics_.Counter('total_tables');
 var scenarios = {
   createGE: {
     executor: 'ramping-vus',
@@ -122,7 +127,7 @@ function createGE() {
   var tenantId = 1 + (execution_default()).vu.idInTest;
   var geName = "ge_".concat((execution_default()).vu.iterationInScenario);
   var columns = generateRandomColumns();
-  var indexes = selectRandomIndexes(columns, 4); // Select up to 4 columns for indexing
+  var indexes = selectRandomIndexes(columns, 2); // Select up to 2 columns for indexing
   var primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
   var createTableSQL = "CREATE TABLE tenant_".concat(tenantId, "_").concat(geName, " (").concat(columns.join(SPLIT), ", PRIMARY KEY (").concat(primaryKeyCol, "));");
   var insertMetaSQL = "INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (".concat(tenantId, ",'").concat(geName, "','").concat(columns.join(SPLIT), "','").concat(indexes.join(SPLIT), "');");
@@ -210,7 +215,14 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
 
 // Database connection setup
-var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+console.log(dbPassword);
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
 var SPLIT = ', ';
 var scenarios = {
@@ -247,15 +259,22 @@ function setup() {
   } else {
     console.log("Table 'ge_metadata' exists. Proceeding with the script.");
   }
+  var rowCountQuery = "SELECT AUTO_INCREMENT \n                        FROM information_schema.tables \n                        WHERE table_schema = 'test' \n                        AND table_name = 'ge_metadata';";
+  var rowCountResult = sql.query(db, rowCountQuery);
+  var rowCount = rowCountResult[0].AUTO_INCREMENT;
+
   // Additional setup logic, if any...
+  return {
+    rowCount: rowCount
+  };
 }
 
 // Teardown function
 function teardown() {
   db.close();
 }
-function readGeData(limit) {
-  var query = "SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata ORDER BY RAND() LIMIT ".concat(limit, ";");
+function readGeData(id) {
+  var query = "SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata where id=".concat(id, ";");
   var resultSet = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, query);
   var geData = [];
   var _iterator = _createForOfIteratorHelper(resultSet),
@@ -295,9 +314,10 @@ function generateInsertQuery(tenantId, geName, columns) {
 }
 
 // Function to insert data into a GE table
-function insertData() {
+function insertData(data) {
   // Randomly select a GE metadata record
-  var _readGeData$ = readGeData(1)[0],
+  var randomID = (0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(1, data.rowCount);
+  var _readGeData$ = readGeData(randomID)[0],
     tenant_id = _readGeData$.tenant_id,
     ge_name = _readGeData$.ge_name,
     columns = _readGeData$.columns;
@@ -534,7 +554,13 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
 
 // Database connection setup
-var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var reads = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_reads');
 var SPLIT = ', ';
 var scenarios = {
@@ -793,7 +819,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // Database connection setup
-var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 
 // Scenarios configuration
 /*  Create     Insert     Read      Read with Join
@@ -879,15 +911,7 @@ var scenarios = {
 // Options configuration
 var options = {
   discardResponseBodies: true,
-  scenarios: scenarios,
-  ext: {
-    loadimpact: {
-      // Project: Default project
-      projectID: 3674428,
-      // Test runs with the same name groups test runs together.
-      name: 'Test (19/12/2023-08:03:00)'
-    }
-  }
+  scenarios: scenarios
 };
 function setup() {
   db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata (\n        id INT AUTO_INCREMENT PRIMARY KEY,\n        tenant_id INT NOT NULL,\n        ge_name VARCHAR(255) NOT NULL,\n        columns TEXT NOT NULL,\n        indexes TEXT NOT NULL\n    );");

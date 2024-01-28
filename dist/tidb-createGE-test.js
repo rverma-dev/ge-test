@@ -122,11 +122,16 @@ var metrics_ = __webpack_require__(610);
 
 
 
-
-// Database connection setup
-var db = sql_default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
-var tables = new metrics_.Counter('total_tables');
 var SPLIT = ', ';
+// Database connection setup
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.DB_PASSWORD || "password";
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = sql_default().open('mysql', connectionString);
+var tables = new metrics_.Counter('total_tables');
 var scenarios = {
   createGE: {
     executor: 'ramping-vus',
@@ -214,7 +219,7 @@ function createGE() {
   var tenantId = 1 + (execution_default()).vu.idInTest;
   var geName = "ge_".concat((execution_default()).vu.iterationInScenario);
   var columns = generateRandomColumns();
-  var indexes = selectRandomIndexes(columns, 4); // Select up to 4 columns for indexing
+  var indexes = selectRandomIndexes(columns, 2); // Select up to 2 columns for indexing
   var primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
   var createTableSQL = "CREATE TABLE tenant_".concat(tenantId, "_").concat(geName, " (").concat(columns.join(SPLIT), ", PRIMARY KEY (").concat(primaryKeyCol, "));");
   var insertMetaSQL = "INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (".concat(tenantId, ",'").concat(geName, "','").concat(columns.join(SPLIT), "','").concat(indexes.join(SPLIT), "');");

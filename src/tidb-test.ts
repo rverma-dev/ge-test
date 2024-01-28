@@ -6,7 +6,13 @@ import { readData } from './tidb-readData-test';
 import { readJoinData } from './tidb-joinData-test';
 
 // Database connection setup
-const db = sql.open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+const dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+const dbPort = __ENV.DB_PORT || "4000";
+const dbName = __ENV.DB_NAME || "test";
+const dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+const dbPassword = __ENV.DB_PASSWORD || "password";
+const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
+const db = sql.open('mysql', connectionString);
 
 // Scenarios configuration
 /*  Create     Insert     Read      Read with Join
@@ -67,14 +73,6 @@ let scenarios = {
 export const options = {
     discardResponseBodies: true,
     scenarios: scenarios,
-    ext: {
-        loadimpact: {
-            // Project: Default project
-            projectID: 3674428,
-            // Test runs with the same name groups test runs together.
-            name: 'Test (19/12/2023-08:03:00)'
-        }
-    }
 };
 
 export function setup() {
