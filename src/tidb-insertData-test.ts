@@ -12,7 +12,6 @@ const dbName = __ENV.DB_NAME || "test";
 const dbUser = __ENV.DB_USER || "root";
 const dbPassword = __ENV.TIDB_PASSWORD || "password";
 
-console.log(dbPassword);
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
 const inserts = new Counter('rows_inserts');

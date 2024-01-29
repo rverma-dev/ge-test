@@ -130,7 +130,6 @@ var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "root";
 var dbPassword = __ENV.TIDB_PASSWORD || "password";
-console.log(dbPassword);
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
