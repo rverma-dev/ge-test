@@ -1,9 +1,9 @@
 /* @ts-ignore */
 import sql from 'k6/x/sql';
 /* @ts-ignore */
-import { randomString, randomIntBetween } from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
+import {randomString, randomIntBetween} from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 
-import { Counter } from 'k6/metrics';
+import {Counter} from 'k6/metrics';
 
 // Database connection setup
 const dbHost = __ENV.DB_HOST || "10.0.132.214";
@@ -29,11 +29,11 @@ let scenarios = {
     insertData: {
         executor: 'ramping-vus',
         exec: 'insertData',
-        startTime: '3m', // Start after 5 minutes
+        startTime: '0m', // Start after 5 minutes
         startVUs: 0,
         stages: [
-            { duration: '2m', target: 50 }, // Ramp up to 50 VUs over the first 5 minutes
-            { duration: '2m', target: 25 } // Ramp down to  25 VUs for the next 10 minutes
+            {duration: '2m', target: 50}, // Ramp up to 50 VUs over the first 5 minutes
+            {duration: '2m', target: 25} // Ramp down to  25 VUs for the next 10 minutes
         ],
         gracefulRampDown: '30s',
     },
@@ -47,9 +47,9 @@ export const options = {
 };
 
 export function setup() {
-    let checkTableQuery = `SELECT COUNT(*) AS table_exists 
-                           FROM information_schema.tables 
-                           WHERE table_schema = 'test' 
+    let checkTableQuery = `SELECT COUNT(*) AS table_exists
+                           FROM information_schema.tables
+                           WHERE table_schema = 'test'
                              AND table_name = 'ge_metadata';`;
 
     let res = sql.query(db, checkTableQuery);
@@ -58,15 +58,14 @@ export function setup() {
     } else {
         console.log("Table 'ge_metadata' exists. Proceeding with the script.");
     }
-    let rowCountQuery = `SELECT AUTO_INCREMENT 
-                        FROM information_schema.tables 
-                        WHERE table_schema = 'test' 
-                        AND table_name = 'ge_metadata';`;
+    let rowCountQuery = `SELECT AUTO_INCREMENT
+                         FROM information_schema.tables
+                         WHERE table_schema = 'test'
+                           AND table_name = 'ge_metadata';`;
     let rowCountResult = sql.query(db, rowCountQuery);
     let rowCount = rowCountResult[0].AUTO_INCREMENT;
-
     // Additional setup logic, if any...
-    return { rowCount };
+    return {rowCount};
 }
 
 // Teardown function
@@ -75,7 +74,9 @@ export function teardown() {
 }
 
 function readGeData(id: number): GeMetadata[] {
-    let query = `SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata where id=${id};`;
+    let query = `SELECT tenant_id, ge_name, columns, indexes
+                 FROM ge_metadata
+                 where id = ${id};`;
     let resultSet = sql.query(db, query);
     let geData: GeMetadata[] = [];
 
@@ -107,7 +108,8 @@ function generateInsertQuery(tenantId: number, geName: string, columns: string):
         );
     });
 
-    return `INSERT INTO tenant_${tenantId}_${geName} (${cols.join(SPLIT)}) VALUES (${values});`;
+    return `INSERT INTO tenant_${tenantId}_${geName} (${cols.join(SPLIT)})
+            VALUES (${values});`;
 }
 
 
@@ -115,7 +117,7 @@ function generateInsertQuery(tenantId: number, geName: string, columns: string):
 export function insertData(data: { rowCount: number }) {
     // Randomly select a GE metadata record
     const randomID = randomIntBetween(1, data.rowCount);
-    let { tenant_id, ge_name, columns }: GeMetadata = readGeData(randomID)[0];
+    let {tenant_id, ge_name, columns}: GeMetadata = readGeData(randomID)[0];
     let insertQuery = generateInsertQuery(tenant_id, ge_name, columns);
     try {
         db.exec(insertQuery);

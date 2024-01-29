@@ -138,7 +138,7 @@ var scenarios = {
   insertData: {
     executor: 'ramping-vus',
     exec: 'insertData',
-    startTime: '3m',
+    startTime: '0m',
     // Start after 5 minutes
     startVUs: 0,
     stages: [{
@@ -161,17 +161,16 @@ var options = {
   scenarios: scenarios
 };
 function setup() {
-  var checkTableQuery = "SELECT COUNT(*) AS table_exists \n                           FROM information_schema.tables \n                           WHERE table_schema = 'test' \n                             AND table_name = 'ge_metadata';";
+  var checkTableQuery = "SELECT COUNT(*) AS table_exists\n                           FROM information_schema.tables\n                           WHERE table_schema = 'test'\n                             AND table_name = 'ge_metadata';";
   var res = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, checkTableQuery);
   if (res[0].table_exists === 0) {
     throw new Error("Table 'ge_metadata' does not exist. Terminating the script.");
   } else {
     console.log("Table 'ge_metadata' exists. Proceeding with the script.");
   }
-  var rowCountQuery = "SELECT AUTO_INCREMENT \n                        FROM information_schema.tables \n                        WHERE table_schema = 'test' \n                        AND table_name = 'ge_metadata';";
+  var rowCountQuery = "SELECT AUTO_INCREMENT\n                         FROM information_schema.tables\n                         WHERE table_schema = 'test'\n                           AND table_name = 'ge_metadata';";
   var rowCountResult = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, rowCountQuery);
   var rowCount = rowCountResult[0].AUTO_INCREMENT;
-
   // Additional setup logic, if any...
   return {
     rowCount: rowCount
@@ -183,7 +182,7 @@ function teardown() {
   db.close();
 }
 function readGeData(id) {
-  var query = "SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata where id=".concat(id, ";");
+  var query = "SELECT tenant_id, ge_name, columns, indexes\n                 FROM ge_metadata\n                 where id = ".concat(id, ";");
   var resultSet = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, query);
   var geData = [];
   var _iterator = _createForOfIteratorHelper(resultSet),
@@ -219,7 +218,7 @@ function generateInsertQuery(tenantId, geName, columns) {
     values.push(colType === 'VARCHAR(255)' ? "'".concat((0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomString)(16), "'") : colType === 'INT' ? (0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(1, 10000).toString() : 'NOW(3)' // Default value for other types
     );
   });
-  return "INSERT INTO tenant_".concat(tenantId, "_").concat(geName, " (").concat(cols.join(SPLIT), ") VALUES (").concat(values, ");");
+  return "INSERT INTO tenant_".concat(tenantId, "_").concat(geName, " (").concat(cols.join(SPLIT), ")\n            VALUES (").concat(values, ");");
 }
 
 // Function to insert data into a GE table
