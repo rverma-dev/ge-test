@@ -32,11 +32,11 @@ var metrics_ = __webpack_require__(610);
 
 var SPLIT = ', ';
 // Database connection setup
-var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbHost = __ENV.DB_HOST || "10.0.132.214";
 var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
-var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
-var dbPassword = __ENV.DB_PASSWORD || "password";
+var dbUser = __ENV.DB_USER || "root";
+var dbPassword = __ENV.TIDB_PASSWORD || "password";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = sql_default().open('mysql', connectionString);
 var tables = new metrics_.Counter('total_tables');
@@ -219,7 +219,7 @@ var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
 var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
-var dbPassword = __ENV.DB_PASSWORD || "password";
+var dbPassword = __ENV.TIDB_PASSWORD || "password";
 console.log(dbPassword);
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
@@ -377,7 +377,13 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
 
 // Database connection setup
-var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', 'gL64LSe6ggDbrgk.root:password@tcp(gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000)/test?tls=skip-verify');
+var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+var dbPort = __ENV.DB_PORT || "4000";
+var dbName = __ENV.DB_NAME || "test";
+var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+var dbPassword = __ENV.TIDB_PASSWORD || "password";
+var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
+var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var reads = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('join_reads');
 var scenarios = {
   readJoinData: {
@@ -558,7 +564,7 @@ var dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
 var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
-var dbPassword = __ENV.DB_PASSWORD || "password";
+var dbPassword = __ENV.TIDB_PASSWORD || "password";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var reads = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_reads');

@@ -7,11 +7,11 @@ import { Counter } from 'k6/metrics';
 
 const SPLIT = ', ';
 // Database connection setup
-const dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+const dbHost = __ENV.DB_HOST || "10.0.132.214";
 const dbPort = __ENV.DB_PORT || "4000";
 const dbName = __ENV.DB_NAME || "test";
-const dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
-const dbPassword = __ENV.DB_PASSWORD || "password";
+const dbUser = __ENV.DB_USER || "root";
+const dbPassword = __ENV.TIDB_PASSWORD || "password";
 
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
@@ -30,7 +30,7 @@ let scenarios = {
         ],
         gracefulRampDown: '30s',
     }
-};
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 
 // Options configuration
 export const options = {
