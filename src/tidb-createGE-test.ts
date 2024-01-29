@@ -53,6 +53,17 @@ export function teardown() {
     db.close();
 }
 
+interface DBError {
+    value: {
+        number: number;
+    };
+}
+
+// Type guard to check if the error is a DBError
+function isDBError(error: unknown): error is DBError {
+    return (error as DBError).value !== undefined;
+}
+
 // Function to generate random columns
 function generateRandomColumns(): string[] {
     const types = ['VARCHAR(255)', 'INT', 'DATETIME(3)'];
@@ -133,7 +144,7 @@ export function createGE(): void {
             console.error(`Failed SQL: ${insertMetaSQL}`);
         }
     } catch (error) {
-        if (error.value.number != 1050) {
+        if (isDBError(error) && error.value.number != 1050) {
             console.error(`Error creating table tenant_${tenantId}_${geName}: ${error}`);
             console.error(`Failed SQL: ${createTableSQL}`);
             return; // Exit the function if table creation fails

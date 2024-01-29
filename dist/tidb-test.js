@@ -78,6 +78,10 @@ function setup() {
 function teardown() {
   db.close();
 }
+// Type guard to check if the error is a DBError
+function isDBError(error) {
+  return error.value !== undefined;
+}
 
 // Function to generate random columns
 function generateRandomColumns() {
@@ -158,7 +162,7 @@ function createGE() {
       console.error("Failed SQL: ".concat(insertMetaSQL));
     }
   } catch (error) {
-    if (error.value.number != 1050) {
+    if (isDBError(error) && error.value.number != 1050) {
       console.error("Error creating table tenant_".concat(tenantId, "_").concat(geName, ": ").concat(error));
       console.error("Failed SQL: ".concat(createTableSQL));
       return; // Exit the function if table creation fails
@@ -473,9 +477,6 @@ function generateJoinQuery(metadata1, metadata2, joinType) {
     case 2:
       // Join between indexed and non-indexed columns
       joinCol1 = indexes1[(0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(0, indexes1.length - 1)];
-      if (!joinCol1) {
-        break;
-      }
       joinCol2 = cols2.filter(function (col) {
         return !indexes2.includes(col);
       })[(0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(0, cols2.length - 1)];

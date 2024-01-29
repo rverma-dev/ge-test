@@ -97,9 +97,6 @@ function generateJoinQuery(metadata1: GeMetadata, metadata2: GeMetadata, joinTyp
             break;
         case 2: // Join between indexed and non-indexed columns
             joinCol1 = indexes1[randomIntBetween(0, indexes1.length - 1)];
-            if (!joinCol1) {
-                break;
-            }
             joinCol2 = cols2.filter(col => !indexes2.includes(col))[randomIntBetween(0, cols2.length - 1)];
             break;
         default: // Join between two non-indexed columns

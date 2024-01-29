@@ -170,6 +170,10 @@ function setup() {
 function teardown() {
   db.close();
 }
+// Type guard to check if the error is a DBError
+function isDBError(error) {
+  return error.value !== undefined;
+}
 
 // Function to generate random columns
 function generateRandomColumns() {
@@ -250,7 +254,7 @@ function createGE() {
       console.error("Failed SQL: ".concat(insertMetaSQL));
     }
   } catch (error) {
-    if (error.value.number != 1050) {
+    if (isDBError(error) && error.value.number != 1050) {
       console.error("Error creating table tenant_".concat(tenantId, "_").concat(geName, ": ").concat(error));
       console.error("Failed SQL: ".concat(createTableSQL));
       return; // Exit the function if table creation fails
