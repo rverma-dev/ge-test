@@ -6,10 +6,10 @@ import { randomString, randomIntBetween } from "https://jslib.k6.io/k6-utils/1.2
 import { Counter } from 'k6/metrics';
 
 // Database connection setup
-const dbHost = __ENV.DB_HOST || "gateway01.ap-southeast-1.prod.aws.tidbcloud.com";
+const dbHost = __ENV.DB_HOST || "10.0.132.214";
 const dbPort = __ENV.DB_PORT || "4000";
 const dbName = __ENV.DB_NAME || "test";
-const dbUser = __ENV.DB_USER || "gL64LSe6ggDbrgk.root";
+const dbUser = __ENV.DB_USER || "root";
 const dbPassword = __ENV.TIDB_PASSWORD || "password";
 
 console.log(dbPassword);
