@@ -224,6 +224,7 @@ var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "root";
 var dbPassword = __ENV.TIDB_PASSWORD || "password";
+var geCount = __ENV.GE_COUNT || "115";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
@@ -262,9 +263,14 @@ function setup() {
   } else {
     console.log("Table 'ge_metadata' exists. Proceeding with the script.");
   }
-  var rowCountQuery = "SELECT AUTO_INCREMENT\n                         FROM information_schema.tables\n                         WHERE table_schema = 'test'\n                           AND table_name = 'ge_metadata';";
-  var rowCountResult = sql.query(db, rowCountQuery);
-  var rowCount = rowCountResult[0].AUTO_INCREMENT;
+  // Below section is not working, currently hardcoding this
+  // let rowCountQuery = `SELECT AUTO_INCREMENT
+  //                      FROM information_schema.tables
+  //                      WHERE table_schema = 'test'
+  //                        AND table_name = 'ge_metadata';`;
+  // let rowCountResult = sql.query(db, rowCountQuery);
+  // let rowCount = rowCountResult[0].AUTO_INCREMENT[0];
+  var rowCount = parseInt(geCount, 10);
   // Additional setup logic, if any...
   return {
     rowCount: rowCount

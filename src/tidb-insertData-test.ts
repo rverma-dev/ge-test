@@ -11,6 +11,7 @@ const dbPort = __ENV.DB_PORT || "4000";
 const dbName = __ENV.DB_NAME || "test";
 const dbUser = __ENV.DB_USER || "root";
 const dbPassword = __ENV.TIDB_PASSWORD || "password";
+const geCount = __ENV.GE_COUNT || "115";
 
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
@@ -58,12 +59,14 @@ export function setup() {
     } else {
         console.log("Table 'ge_metadata' exists. Proceeding with the script.");
     }
-    let rowCountQuery = `SELECT AUTO_INCREMENT
-                         FROM information_schema.tables
-                         WHERE table_schema = 'test'
-                           AND table_name = 'ge_metadata';`;
-    let rowCountResult = sql.query(db, rowCountQuery);
-    let rowCount = rowCountResult[0].AUTO_INCREMENT;
+    // Below section is not working, currently hardcoding this
+    // let rowCountQuery = `SELECT AUTO_INCREMENT
+    //                      FROM information_schema.tables
+    //                      WHERE table_schema = 'test'
+    //                        AND table_name = 'ge_metadata';`;
+    // let rowCountResult = sql.query(db, rowCountQuery);
+    // let rowCount = rowCountResult[0].AUTO_INCREMENT[0];
+    let rowCount:number = parseInt(geCount, 10  );
     // Additional setup logic, if any...
     return {rowCount};
 }
