@@ -24,10 +24,11 @@ let scenarios = {
         executor: 'ramping-vus',
         exec: 'insertData',
         startTime: '0m', // Start after 5 minutes
-        startVUs: 0,
+        startVUs: 50,
         stages: [
-            {duration: '2m', target: 50}, // Ramp up to 50 VUs over the first 5 minutes
-            {duration: '2m', target: 25} // Ramp down to  25 VUs for the next 10 minutes
+            {duration: '5m', target: 100}, // Ramp up to 50 VUs over the first 5 minutes
+            {duration: '5m', target: 100}, // Ramp up to 50 VUs over the first 5 minutes
+            {duration: '5m', target: 50} // Ramp down to  25 VUs for the next 10 minutes
         ],
         gracefulRampDown: '30s',
     },
