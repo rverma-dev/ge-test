@@ -163,7 +163,7 @@ var options = {
   scenarios: scenarios
 };
 function setup() {
-  db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata (\n        id INT AUTO_INCREMENT PRIMARY KEY,\n        tenant_id INT NOT NULL,\n        ge_name VARCHAR(255) NOT NULL,\n        columns TEXT NOT NULL,\n        indexes TEXT NOT NULL\n    );");
+  db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata (\n        id INT AUTO_INCREMENT PRIMARY KEY, \n        tenant_id INT NOT NULL,\n        ge_name VARCHAR(255) NOT NULL,\n        columns TEXT NOT NULL,\n        indexes TEXT NOT NULL\n    ) AUTO_ID_CACHE 1;");
 }
 
 // Teardown function

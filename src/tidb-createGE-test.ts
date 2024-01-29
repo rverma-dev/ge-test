@@ -40,12 +40,12 @@ export const options = {
 
 export function setup() {
     db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY, 
         tenant_id INT NOT NULL,
         ge_name VARCHAR(255) NOT NULL,
         columns TEXT NOT NULL,
         indexes TEXT NOT NULL
-    );`);
+    ) AUTO_ID_CACHE 1;`);
 }
 
 // Teardown function
