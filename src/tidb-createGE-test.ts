@@ -1,9 +1,9 @@
 /* @ts-ignore */
 import sql from 'k6/x/sql';
 /* @ts-ignore */
-import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
+import {randomIntBetween} from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 import exec from 'k6/execution';
-import { Counter } from 'k6/metrics';
+import {Counter} from 'k6/metrics';
 
 const SPLIT = ', ';
 // Database connection setup
@@ -16,6 +16,7 @@ const dbPassword = __ENV.TIDB_PASSWORD || "password";
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
 const tables = new Counter('total_tables');
+const types = ['VARCHAR(255)', 'BIGINT', 'DATETIME(5)'];
 
 let scenarios = {
     createGE: {
@@ -24,13 +25,13 @@ let scenarios = {
         startVUs: 20,
         startTime: '0',
         stages: [
-            { duration: '1m', target: 50 }, // Stay at 50 VUs for the first 5 minutes
-            { duration: '4m', target: 20 }, // Reduce to 20 VUs over the next 10 minutes
-            { duration: '1m', target: 10 }   // Further reduce to 10 VUs for the last 5 minutes
+            {duration: '1m', target: 50}, // Stay at 50 VUs for the first 5 minutes
+            {duration: '4m', target: 20}, // Reduce to 20 VUs over the next 10 minutes
+            {duration: '1m', target: 10}   // Further reduce to 10 VUs for the last 5 minutes
         ],
         gracefulRampDown: '30s',
     }
-};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+};
 
 // Options configuration
 export const options = {
@@ -39,24 +40,19 @@ export const options = {
 };
 
 export function setup() {
-    db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata (
-        id INT AUTO_INCREMENT PRIMARY KEY, 
-        tenant_id INT NOT NULL,
-        ge_name VARCHAR(255) NOT NULL,
-        columns TEXT NOT NULL,
-        indexes TEXT NOT NULL
-    ) AUTO_ID_CACHE 1;`);
+    db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata
+             (
+                 id        INT AUTO_INCREMENT PRIMARY KEY,
+                 tenant_id INT          NOT NULL,
+                 ge_name   VARCHAR(255) NOT NULL,
+                 columns   JSON         NOT NULL,
+                 indexes   JSON         NOT NULL
+             ) AUTO_ID_CACHE 1;`);
 }
 
 // Teardown function
 export function teardown() {
     db.close();
-}
-
-interface DBError {
-    value: {
-        number: number;
-    };
 }
 
 // Type guard to check if the error is a DBError
@@ -65,11 +61,10 @@ function isDBError(error: unknown): error is DBError {
 }
 
 // Function to generate random columns
-function generateRandomColumns(): string[] {
-    const types = ['VARCHAR(255)', 'INT', 'DATETIME(3)'];
-    let columns = [];
+function generateRandomColumns(): Column[] {
+    let columns: Column[] = [];
     let numCols = randomIntBetween(3, 10); // Generate between 3 to 10 columns
-    let columnNames = new Set(); // To track unique column names
+    let columnNames = new Set<string>(); // To track unique column names
 
     while (columns.length < numCols) {
         let type = types[randomIntBetween(0, types.length - 1)];
@@ -77,35 +72,21 @@ function generateRandomColumns(): string[] {
 
         // Ensure the column name is unique
         if (!columnNames.has(colName)) {
-            columns.push(`${colName} ${type}`);
+            columns.push({name: colName, type: type});
             columnNames.add(colName); // Add to the set of known names
         }
     }
-
     return columns;
 }
 
 // Function to select random indexes from the columns
-function selectRandomIndexes(columns: string[], maxIndexes: number): string[] {
-    let columnNames = columns.map(col => col.split(' ')[0]);
-    let selectedIndexes = new Set(); // To keep track of selected indexes
-    let indexes = [];
-
-    // Adjust to exclude primary key column (assuming it's the first column)
-    columnNames.shift();
-
-    while (indexes.length < Math.min(maxIndexes, columnNames.length)) {
-        let randomIndex = randomIntBetween(0, columnNames.length - 1);
-        let indexName = columnNames[randomIndex];
-
-        // Check if already selected, if not, add to the indexes array
-        if (!selectedIndexes.has(indexName)) {
-            indexes.push(indexName);
-            selectedIndexes.add(indexName);
-        }
+function selectRandomIndexes(columns: Column[], maxIndexes: number): Column[] {
+    let selectedIndexes = new Set<Column>(); // To keep track of selected indexes
+    while (selectedIndexes.size < Math.min(maxIndexes, columns.length)) {
+        const randomIndex = randomIntBetween(0, columns.length - 1);
+        selectedIndexes.add(columns[randomIndex]);
     }
-
-    return indexes;
+    return Array.from(selectedIndexes);
 }
 
 // Create GE scenario
@@ -113,24 +94,30 @@ export function createGE(): void {
     const tenantId = 1 + exec.vu.idInTest;
     const geName = `ge_${exec.vu.iterationInScenario}`;
     const columns = generateRandomColumns();
-    const indexes = selectRandomIndexes(columns, 2); // Select up to 2 columns for indexing
-    let primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
-    let createTableSQL = `CREATE TABLE tenant_${tenantId}_${geName} (${columns.join(SPLIT)}, PRIMARY KEY (${primaryKeyCol}));`;
-    let insertMetaSQL = `INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (${tenantId},'${geName}','${columns.join(SPLIT)}','${indexes.join(SPLIT)}');`
+    const [primaryKeyCol, ...otherColumns] = columns;
+    const indexes = selectRandomIndexes(otherColumns, 2);  // Select up to 2 columns for indexing
+    const createTableSQL = `CREATE TABLE tenant_${tenantId}_${geName}
+    (
+        ${primaryKeyCol.name}
+        ${primaryKeyCol.type === 'BIGINT' ? 'BIGINT AUTO_RANDOM' : primaryKeyCol.type}
+        ${otherColumns.map(({name, type}) => `, ${name} ${type}`).join('')},
+        PRIMARY KEY ( ${primaryKeyCol.name} )
+        );`;
+    const insertMetaSQL = `INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes)
+                           VALUES (${tenantId}, '${geName}',
+                                   '${JSON.stringify(columns)}',
+                                   '${JSON.stringify(indexes)}');`
 
     // Create table
     try {
         db.exec(createTableSQL);
-        console.log(`Table tenant_${tenantId}_${geName} created successfully`);
-
         // Create indexes
         indexes.forEach(indexCol => {
-            let createIndexSQL = `CREATE INDEX IF NOT EXISTS idx_${indexCol} ON tenant_${tenantId}_${geName} (${indexCol});`;
+            let createIndexSQL = `CREATE INDEX IF NOT EXISTS idx_${indexCol.name} ON tenant_${tenantId}_${geName} (${indexCol.name});`;
             try {
                 db.exec(createIndexSQL);
-                console.log(`Index created successfully on column: ${indexCol}`);
             } catch (error) {
-                console.error(`Error creating index on column ${indexCol} for tenant_${tenantId}_${geName}: ${error}`);
+                console.error(`Error creating index on column ${indexCol.name} for tenant_${tenantId}_${geName}: ${error}`);
                 console.error(`Failed SQL: ${createIndexSQL}`);
             }
         });
@@ -139,6 +126,7 @@ export function createGE(): void {
         try {
             db.exec(insertMetaSQL);
             tables.add(1);
+            console.log(`Table tenant_${tenantId}_${geName} created successfully`);
         } catch (error) {
             console.error(`Error inserting metadata for tenant_${tenantId}_${geName}: ${error}`);
             console.error(`Failed SQL: ${insertMetaSQL}`);

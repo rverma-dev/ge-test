@@ -1,8 +1,7 @@
 /* @ts-ignore */
 import sql from 'k6/x/sql';
 /* @ts-ignore */
-import {randomString, randomIntBetween} from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
-
+import {randomIntBetween, randomString} from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 import {Counter} from 'k6/metrics';
 
 // Database connection setup
@@ -16,15 +15,9 @@ const geCount = __ENV.GE_COUNT || "115";
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
 const inserts = new Counter('rows_inserts');
-
 const SPLIT = ', ';
-
-interface GeMetadata {
-    tenant_id: number;
-    ge_name: string;
-    columns: string;
-    indexes: string;
-}
+const MetaTableExistsQuery = `SELECT COUNT(*) AS table_exists FROM information_schema.tables  WHERE table_schema = 'test' AND table_name = 'ge_metadata';`;
+const MetaCountQuery = `SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_schema = 'test' AND table_name = 'ge_metadata';`;
 
 let scenarios = {
     insertData: {
@@ -40,7 +33,6 @@ let scenarios = {
     },
 };
 
-
 // Options configuration
 export const options = {
     discardResponseBodies: true,
@@ -48,27 +40,17 @@ export const options = {
 };
 
 export function setup() {
-    let checkTableQuery = `SELECT COUNT(*) AS table_exists
-                           FROM information_schema.tables
-                           WHERE table_schema = 'test'
-                             AND table_name = 'ge_metadata';`;
-
-    let res = sql.query(db, checkTableQuery);
+    let res = sql.query(db, MetaTableExistsQuery);
+    let rowCount = parseInt(String.fromCharCode(res[0]["table_exists"]));
+    console.log(rowCount);
     if (res[0].table_exists === 0) {
         throw new Error("Table 'ge_metadata' does not exist. Terminating the script.");
     } else {
         console.log("Table 'ge_metadata' exists. Proceeding with the script.");
+        let res = sql.query(db, MetaCountQuery);
+        let rowCount = parseInt(String.fromCharCode(...res[0]["AUTO_INCREMENT"], 10));
+        return {rowCount};
     }
-    // Below section is not working, currently hardcoding this
-    // let rowCountQuery = `SELECT AUTO_INCREMENT
-    //                      FROM information_schema.tables
-    //                      WHERE table_schema = 'test'
-    //                        AND table_name = 'ge_metadata';`;
-    // let rowCountResult = sql.query(db, rowCountQuery);
-    // let rowCount = rowCountResult[0].AUTO_INCREMENT[0];
-    let rowCount:number = parseInt(geCount, 10  );
-    // Additional setup logic, if any...
-    return {rowCount};
 }
 
 // Teardown function
@@ -76,52 +58,21 @@ export function teardown() {
     db.close();
 }
 
-function readGeData(id: number): GeMetadata[] {
-    let query = `SELECT tenant_id, ge_name, columns, indexes
-                 FROM ge_metadata
-                 where id = ${id};`;
-    let resultSet = sql.query(db, query);
-    let geData: GeMetadata[] = [];
-
-    for (let row of resultSet) {
-        geData.push({
-            tenant_id: parseInt(String.fromCharCode(...row.tenant_id), 10),
-            ge_name: String.fromCharCode(...row.ge_name),
-            columns: String.fromCharCode(...row.columns),
-            indexes: String.fromCharCode(...row.indexes)
-        });
+function getRandomValueForType(type: string) {
+    switch (type) {
+        case 'VARCHAR(255)':
+            return `'${randomString(16)}'`;
+        case 'BIGINT':
+            return randomIntBetween(1, 10000).toString();
+        default:
+            return 'NOW(5)';
     }
-
-    return geData;
 }
-
-
-// Function to generate the SQL query for inserting data
-function generateInsertQuery(tenantId: number, geName: string, columns: string): string {
-    let cols: string[] = [];
-    let values: string[] = [];
-
-    columns.split(SPLIT).forEach(colDef => {
-        let [colName, colType] = colDef.trim().split(' ');
-        cols.push(colName);
-        values.push(
-            colType === 'VARCHAR(255)' ? `'${randomString(16)}'` :
-                colType === 'INT' ? randomIntBetween(1, 10000).toString() :
-                    'NOW(3)'  // Default value for other types
-        );
-    });
-
-    return `INSERT INTO tenant_${tenantId}_${geName} (${cols.join(SPLIT)})
-            VALUES (${values});`;
-}
-
 
 // Function to insert data into a GE table
 export function insertData(data: { rowCount: number }) {
-    // Randomly select a GE metadata record
-    const randomID = randomIntBetween(1, data.rowCount);
-    let {tenant_id, ge_name, columns}: GeMetadata = readGeData(randomID)[0];
-    let insertQuery = generateInsertQuery(tenant_id, ge_name, columns);
+    let geData = readGeData(data.rowCount);
+    let insertQuery = generateInsertQuery(geData.tenant_id, geData.ge_name, geData.columns);
     try {
         db.exec(insertQuery);
         inserts.add(1);
@@ -131,7 +82,37 @@ export function insertData(data: { rowCount: number }) {
     }
 }
 
-/* 
+function readGeData(id: number): GeMetadata {
+    const randomID = randomIntBetween(1, id);
+    let query = `SELECT tenant_id, ge_name, columns, indexes FROM ge_metadata where id = ${randomID};`;
+    let resultSet = sql.query(db, query);
+    return {
+        tenant_id: parseInt(String.fromCharCode(...resultSet[0]["tenant_id"]), 10),
+        ge_name: String.fromCharCode(...resultSet[0]["ge_name"]),
+        columns: JSON.parse(String.fromCharCode(...resultSet[0]["columns"])),
+        indexes: JSON.parse(String.fromCharCode(...resultSet[0]["indexes"]))
+    };
+}
+
+// Function to generate the SQL query for inserting data
+function generateInsertQuery(tenantId: number, geName: string, columns: Column[]): string {
+    let cols: string[] = [];
+    let values: string[] = [];
+
+    const [primaryKeyCol, ...otherColumns] = columns;
+    if (primaryKeyCol.type !== 'BIGINT') {
+        cols.push(primaryKeyCol.name);
+        values.push(getRandomValueForType(primaryKeyCol.type));
+    }
+    otherColumns.forEach(col => {
+        cols.push(col.name);
+        values.push(getRandomValueForType(col.type));
+    });
+    return `INSERT INTO tenant_${tenantId}_${geName} (${cols.join(SPLIT)}) VALUES (${values.join(SPLIT)});`;
+}
+
+
+/*
 Result
 
 data_received........: 0 B   0 B/s

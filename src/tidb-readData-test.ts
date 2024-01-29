@@ -97,7 +97,7 @@ export function readData() {
         cols.push(colName);
         let defaultValue = colType === 'VARCHAR(255)' ? `'${randomString(16)}'` :
                            colType === 'INT' ? randomIntBetween(1, 10000).toString() :
-                           'NOW(3)'; // Default value for other types
+                           'NOW(5)'; // Default value for other types
         defaultValueMap.set(colName, defaultValue);
     });
 

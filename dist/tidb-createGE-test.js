@@ -116,6 +116,12 @@ var execution_default = /*#__PURE__*/__webpack_require__.n(execution_namespaceOb
 // EXTERNAL MODULE: external "k6/metrics"
 var metrics_ = __webpack_require__(610);
 ;// CONCATENATED MODULE: ./src/tidb-createGE-test.ts
+function _toArray(arr) { return _arrayWithHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 /* @ts-ignore */
 
 /* @ts-ignore */
@@ -132,6 +138,7 @@ var dbPassword = __ENV.TIDB_PASSWORD || "password";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = sql_default().open('mysql', connectionString);
 var tables = new metrics_.Counter('total_tables');
+var types = ['VARCHAR(255)', 'BIGINT', 'DATETIME(5)'];
 var scenarios = {
   createGE: {
     executor: 'ramping-vus',
@@ -163,13 +170,14 @@ var options = {
   scenarios: scenarios
 };
 function setup() {
-  db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata (\n        id INT AUTO_INCREMENT PRIMARY KEY, \n        tenant_id INT NOT NULL,\n        ge_name VARCHAR(255) NOT NULL,\n        columns TEXT NOT NULL,\n        indexes TEXT NOT NULL\n    ) AUTO_ID_CACHE 1;");
+  db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata\n             (\n                 id        INT AUTO_INCREMENT PRIMARY KEY,\n                 tenant_id INT          NOT NULL,\n                 ge_name   VARCHAR(255) NOT NULL,\n                 columns   JSON         NOT NULL,\n                 indexes   JSON         NOT NULL\n             ) AUTO_ID_CACHE 1;");
 }
 
 // Teardown function
 function teardown() {
   db.close();
 }
+
 // Type guard to check if the error is a DBError
 function isDBError(error) {
   return error.value !== undefined;
@@ -177,7 +185,6 @@ function isDBError(error) {
 
 // Function to generate random columns
 function generateRandomColumns() {
-  var types = ['VARCHAR(255)', 'INT', 'DATETIME(3)'];
   var columns = [];
   var numCols = (0,index_js_.randomIntBetween)(3, 10); // Generate between 3 to 10 columns
   var columnNames = new Set(); // To track unique column names
@@ -188,7 +195,10 @@ function generateRandomColumns() {
 
     // Ensure the column name is unique
     if (!columnNames.has(colName)) {
-      columns.push("".concat(colName, " ").concat(type));
+      columns.push({
+        name: colName,
+        type: type
+      });
       columnNames.add(colName); // Add to the set of known names
     }
   }
@@ -197,25 +207,12 @@ function generateRandomColumns() {
 
 // Function to select random indexes from the columns
 function selectRandomIndexes(columns, maxIndexes) {
-  var columnNames = columns.map(function (col) {
-    return col.split(' ')[0];
-  });
   var selectedIndexes = new Set(); // To keep track of selected indexes
-  var indexes = [];
-
-  // Adjust to exclude primary key column (assuming it's the first column)
-  columnNames.shift();
-  while (indexes.length < Math.min(maxIndexes, columnNames.length)) {
-    var randomIndex = (0,index_js_.randomIntBetween)(0, columnNames.length - 1);
-    var indexName = columnNames[randomIndex];
-
-    // Check if already selected, if not, add to the indexes array
-    if (!selectedIndexes.has(indexName)) {
-      indexes.push(indexName);
-      selectedIndexes.add(indexName);
-    }
+  while (selectedIndexes.size < Math.min(maxIndexes, columns.length)) {
+    var randomIndex = (0,index_js_.randomIntBetween)(0, columns.length - 1);
+    selectedIndexes.add(columns[randomIndex]);
   }
-  return indexes;
+  return Array.from(selectedIndexes);
 }
 
 // Create GE scenario
@@ -223,24 +220,27 @@ function createGE() {
   var tenantId = 1 + (execution_default()).vu.idInTest;
   var geName = "ge_".concat((execution_default()).vu.iterationInScenario);
   var columns = generateRandomColumns();
-  var indexes = selectRandomIndexes(columns, 2); // Select up to 2 columns for indexing
-  var primaryKeyCol = columns[0].split(' ')[0]; // Use the first column as the primary key
-  var createTableSQL = "CREATE TABLE tenant_".concat(tenantId, "_").concat(geName, " (").concat(columns.join(SPLIT), ", PRIMARY KEY (").concat(primaryKeyCol, "));");
-  var insertMetaSQL = "INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes) VALUES (".concat(tenantId, ",'").concat(geName, "','").concat(columns.join(SPLIT), "','").concat(indexes.join(SPLIT), "');");
+  var _columns = _toArray(columns),
+    primaryKeyCol = _columns[0],
+    otherColumns = _columns.slice(1);
+  var indexes = selectRandomIndexes(otherColumns, 2); // Select up to 2 columns for indexing
+  var createTableSQL = "CREATE TABLE tenant_".concat(tenantId, "_").concat(geName, "\n    (\n        ").concat(primaryKeyCol.name, "\n        ").concat(primaryKeyCol.type === 'BIGINT' ? 'BIGINT AUTO_RANDOM' : primaryKeyCol.type, "\n        ").concat(otherColumns.map(function (_ref) {
+    var name = _ref.name,
+      type = _ref.type;
+    return ", ".concat(name, " ").concat(type);
+  }).join(''), ",\n        PRIMARY KEY ( ").concat(primaryKeyCol.name, " )\n        );");
+  var insertMetaSQL = "INSERT INTO ge_metadata (tenant_id, ge_name, columns, indexes)\n                           VALUES (".concat(tenantId, ", '").concat(geName, "',\n                                   '").concat(JSON.stringify(columns), "',\n                                   '").concat(JSON.stringify(indexes), "');");
 
   // Create table
   try {
     db.exec(createTableSQL);
-    console.log("Table tenant_".concat(tenantId, "_").concat(geName, " created successfully"));
-
     // Create indexes
     indexes.forEach(function (indexCol) {
-      var createIndexSQL = "CREATE INDEX IF NOT EXISTS idx_".concat(indexCol, " ON tenant_").concat(tenantId, "_").concat(geName, " (").concat(indexCol, ");");
+      var createIndexSQL = "CREATE INDEX IF NOT EXISTS idx_".concat(indexCol.name, " ON tenant_").concat(tenantId, "_").concat(geName, " (").concat(indexCol.name, ");");
       try {
         db.exec(createIndexSQL);
-        console.log("Index created successfully on column: ".concat(indexCol));
       } catch (error) {
-        console.error("Error creating index on column ".concat(indexCol, " for tenant_").concat(tenantId, "_").concat(geName, ": ").concat(error));
+        console.error("Error creating index on column ".concat(indexCol.name, " for tenant_").concat(tenantId, "_").concat(geName, ": ").concat(error));
         console.error("Failed SQL: ".concat(createIndexSQL));
       }
     });
@@ -249,6 +249,7 @@ function createGE() {
     try {
       db.exec(insertMetaSQL);
       tables.add(1);
+      console.log("Table tenant_".concat(tenantId, "_").concat(geName, " created successfully"));
     } catch (error) {
       console.error("Error inserting metadata for tenant_".concat(tenantId, "_").concat(geName, ": ").concat(error));
       console.error("Failed SQL: ".concat(insertMetaSQL));

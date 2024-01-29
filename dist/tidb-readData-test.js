@@ -216,7 +216,7 @@ function readData() {
       colName = _colDef$trim$split2[0],
       colType = _colDef$trim$split2[1];
     cols.push(colName);
-    var defaultValue = colType === 'VARCHAR(255)' ? "'".concat((0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomString)(16), "'") : colType === 'INT' ? (0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(1, 10000).toString() : 'NOW(3)'; // Default value for other types
+    var defaultValue = colType === 'VARCHAR(255)' ? "'".concat((0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomString)(16), "'") : colType === 'INT' ? (0,https_jslib_k6_io_k6_utils_1_2_0_index_js__WEBPACK_IMPORTED_MODULE_1__.randomIntBetween)(1, 10000).toString() : 'NOW(5)'; // Default value for other types
     defaultValueMap.set(colName, defaultValue);
   });
   var nonIndexedCols = cols.filter(function (col) {
