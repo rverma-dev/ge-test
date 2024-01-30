@@ -13,8 +13,3 @@ interface GeMetadata {
     columns: Column[];
     indexes: Column[];
 }
-
-// Type guard to check if the error is a DBError
-function isDBError(error: unknown): error is DBError {
-    return (error as DBError).value !== undefined;
-}

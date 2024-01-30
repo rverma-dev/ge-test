@@ -39,6 +39,11 @@ export const options = {
     scenarios: scenarios,
 };
 
+// Type guard to check if the error is a DBError
+function isDBError(error: unknown): error is DBError {
+    return (error as DBError).value !== undefined;
+}
+
 export function setup() {
     db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata
              (

@@ -167,6 +167,11 @@ var options = {
   discardResponseBodies: true,
   scenarios: scenarios
 };
+
+// Type guard to check if the error is a DBError
+function isDBError(error) {
+  return error.value !== undefined;
+}
 function setup() {
   var res = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().query(db, MetaTableExistsQuery);
   var rowCount = parseInt(String.fromCharCode(res[0]["table_exists"]));

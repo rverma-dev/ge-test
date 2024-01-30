@@ -41,6 +41,11 @@ export const options = {
     scenarios: scenarios,
 };
 
+// Type guard to check if the error is a DBError
+function isDBError(error: unknown): error is DBError {
+    return (error as DBError).value !== undefined;
+}
+
 export function setup() {
     let res = sql.query(db, MetaTableExistsQuery);
     let rowCount = parseInt(String.fromCharCode(res[0]["table_exists"]));

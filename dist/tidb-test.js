@@ -77,6 +77,11 @@ var options = {
   discardResponseBodies: true,
   scenarios: scenarios
 };
+
+// Type guard to check if the error is a DBError
+function isDBError(error) {
+  return error.value !== undefined;
+}
 function setup() {
   db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata\n             (\n                 id        INT AUTO_INCREMENT PRIMARY KEY,\n                 tenant_id INT          NOT NULL,\n                 ge_name   VARCHAR(255) NOT NULL,\n                 columns   JSON         NOT NULL,\n                 indexes   JSON         NOT NULL\n             ) AUTO_ID_CACHE 1;");
 }
@@ -257,6 +262,11 @@ var options = {
   discardResponseBodies: true,
   scenarios: scenarios
 };
+
+// Type guard to check if the error is a DBError
+function isDBError(error) {
+  return error.value !== undefined;
+}
 function setup() {
   var res = sql.query(db, MetaTableExistsQuery);
   var rowCount = parseInt(String.fromCharCode(res[0]["table_exists"]));
