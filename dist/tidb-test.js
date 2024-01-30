@@ -86,11 +86,6 @@ function teardown() {
   db.close();
 }
 
-// Type guard to check if the error is a DBError
-function isDBError(error) {
-  return error.value !== undefined;
-}
-
 // Function to generate random columns
 function generateRandomColumns() {
   var columns = [];
@@ -227,6 +222,7 @@ var geCount = __ENV.GE_COUNT || "115";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
+var duplicate = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('duplicate_inserts');
 var SPLIT = ', ';
 var MetaTableExistsQuery = "SELECT COUNT(*) AS table_exists FROM information_schema.tables  WHERE table_schema = 'test' AND table_name = 'ge_metadata';";
 var MetaCountQuery = "SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_schema = 'test' AND table_name = 'ge_metadata';";
@@ -300,8 +296,12 @@ function insertData(data) {
     db.exec(insertQuery);
     inserts.add(1);
   } catch (error) {
-    console.error("Error executing insert query: ".concat(error));
-    console.error("Failed SQL: ".concat(insertQuery));
+    if (isDBError(error) && error.value.number === 1062) {
+      duplicate.add(1);
+    } else {
+      console.error("Error executing insert query: ".concat(error));
+      console.error("Failed SQL: ".concat(insertQuery));
+    }
   }
 }
 function readGeData(id) {

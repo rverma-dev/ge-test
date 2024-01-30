@@ -15,6 +15,7 @@ const geCount = __ENV.GE_COUNT || "115";
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
 const inserts = new Counter('rows_inserts');
+const duplicate = new Counter('duplicate_inserts');
 const SPLIT = ', ';
 const MetaTableExistsQuery = `SELECT COUNT(*) AS table_exists FROM information_schema.tables  WHERE table_schema = 'test' AND table_name = 'ge_metadata';`;
 const MetaCountQuery = `SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_schema = 'test' AND table_name = 'ge_metadata';`;
@@ -78,8 +79,12 @@ export function insertData(data: { rowCount: number }) {
         db.exec(insertQuery);
         inserts.add(1);
     } catch (error) {
-        console.error(`Error executing insert query: ${error}`);
-        console.error(`Failed SQL: ${insertQuery}`);
+        if (isDBError(error) && error.value.number === 1062) {
+            duplicate.add(1);
+        } else {
+            console.error(`Error executing insert query: ${error}`);
+            console.error(`Failed SQL: ${insertQuery}`);
+        }
     }
 }
 

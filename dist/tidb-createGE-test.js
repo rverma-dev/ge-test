@@ -178,11 +178,6 @@ function teardown() {
   db.close();
 }
 
-// Type guard to check if the error is a DBError
-function isDBError(error) {
-  return error.value !== undefined;
-}
-
 // Function to generate random columns
 function generateRandomColumns() {
   var columns = [];

@@ -55,11 +55,6 @@ export function teardown() {
     db.close();
 }
 
-// Type guard to check if the error is a DBError
-function isDBError(error: unknown): error is DBError {
-    return (error as DBError).value !== undefined;
-}
-
 // Function to generate random columns
 function generateRandomColumns(): Column[] {
     let columns: Column[] = [];
