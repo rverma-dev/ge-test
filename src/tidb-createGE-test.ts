@@ -5,7 +5,6 @@ import {randomIntBetween} from "https://jslib.k6.io/k6-utils/1.2.0/index.js";
 import exec from 'k6/execution';
 import {Counter} from 'k6/metrics';
 
-const SPLIT = ', ';
 // Database connection setup
 const dbHost = __ENV.DB_HOST || "10.0.132.214";
 const dbPort = __ENV.DB_PORT || "4000";
@@ -25,9 +24,9 @@ let scenarios = {
         startVUs: 20,
         startTime: '0',
         stages: [
-            {duration: '1m', target: 50}, // Stay at 50 VUs for the first 5 minutes
-            {duration: '4m', target: 20}, // Reduce to 20 VUs over the next 10 minutes
-            {duration: '1m', target: 10}   // Further reduce to 10 VUs for the last 5 minutes
+            {duration: '2m', target: 50}, // Stay at 50 VUs for the first 5 minutes
+            {duration: '4m', target: 50}, // Reduce to 20 VUs over the next 10 minutes
+            {duration: '2m', target: 20}   // Further reduce to 10 VUs for the last 5 minutes
         ],
         gracefulRampDown: '30s',
     }
@@ -45,6 +44,7 @@ function isDBError(error: unknown): error is DBError {
 }
 
 export function setup() {
+    // FIXME: this will cause hotspot and uneven spread on region servers due to auto increment
     db.exec(`CREATE TABLE IF NOT EXISTS test.ge_metadata
              (
                  id        INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,14 +66,21 @@ function generateRandomColumns(): Column[] {
     let numCols = randomIntBetween(3, 10); // Generate between 3 to 10 columns
     let columnNames = new Set<string>(); // To track unique column names
 
+    // Ensure the first column (primary key) is either VARCHAR(255) or BIGINT with skew 80% bigint
+    let primaryType = randomIntBetween(0, 9) > 7 ? 'VARCHAR(255)' : 'BIGINT';
+    let primaryColName = `col_${randomIntBetween(1000, 9999)}`;
+    columns.push({ name: primaryColName, type: primaryType });
+    columnNames.add(primaryColName);
+
+    // Generate the rest of the columns
     while (columns.length < numCols) {
         let type = types[randomIntBetween(0, types.length - 1)];
         let colName = `col_${randomIntBetween(1000, 9999)}`;
 
         // Ensure the column name is unique
         if (!columnNames.has(colName)) {
-            columns.push({name: colName, type: type});
-            columnNames.add(colName); // Add to the set of known names
+            columns.push({ name: colName, type: type });
+            columnNames.add(colName);
         }
     }
     return columns;

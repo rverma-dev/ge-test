@@ -36,7 +36,7 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 
 
-var SPLIT = ', ';
+
 // Database connection setup
 var dbHost = __ENV.DB_HOST || "10.0.132.214";
 var dbPort = __ENV.DB_PORT || "4000";
@@ -54,18 +54,18 @@ var scenarios = {
     startVUs: 20,
     startTime: '0',
     stages: [{
-      duration: '1m',
+      duration: '2m',
       target: 50
     },
     // Stay at 50 VUs for the first 5 minutes
     {
       duration: '4m',
-      target: 20
+      target: 50
     },
     // Reduce to 20 VUs over the next 10 minutes
     {
-      duration: '1m',
-      target: 10
+      duration: '2m',
+      target: 20
     } // Further reduce to 10 VUs for the last 5 minutes
     ],
     gracefulRampDown: '30s'
@@ -83,6 +83,7 @@ function isDBError(error) {
   return error.value !== undefined;
 }
 function setup() {
+  // FIXME: this will cause hotspot and uneven spread on region servers due to auto increment
   db.exec("CREATE TABLE IF NOT EXISTS test.ge_metadata\n             (\n                 id        INT AUTO_INCREMENT PRIMARY KEY,\n                 tenant_id INT          NOT NULL,\n                 ge_name   VARCHAR(255) NOT NULL,\n                 columns   JSON         NOT NULL,\n                 indexes   JSON         NOT NULL\n             ) AUTO_ID_CACHE 1;");
 }
 
@@ -97,6 +98,16 @@ function generateRandomColumns() {
   var numCols = (0,index_js_.randomIntBetween)(3, 10); // Generate between 3 to 10 columns
   var columnNames = new Set(); // To track unique column names
 
+  // Ensure the first column (primary key) is either VARCHAR(255) or BIGINT with skew 80% bigint
+  var primaryType = (0,index_js_.randomIntBetween)(0, 9) > 7 ? 'VARCHAR(255)' : 'BIGINT';
+  var primaryColName = "col_".concat((0,index_js_.randomIntBetween)(1000, 9999));
+  columns.push({
+    name: primaryColName,
+    type: primaryType
+  });
+  columnNames.add(primaryColName);
+
+  // Generate the rest of the columns
   while (columns.length < numCols) {
     var type = types[(0,index_js_.randomIntBetween)(0, types.length - 1)];
     var colName = "col_".concat((0,index_js_.randomIntBetween)(1000, 9999));
@@ -107,7 +118,7 @@ function generateRandomColumns() {
         name: colName,
         type: type
       });
-      columnNames.add(colName); // Add to the set of known names
+      columnNames.add(colName);
     }
   }
   return columns;
@@ -223,7 +234,6 @@ var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "root";
 var dbPassword = __ENV.TIDB_PASSWORD || "password";
-var geCount = __ENV.GE_COUNT || "115";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
@@ -247,11 +257,21 @@ var scenarios = {
       duration: '5m',
       target: 100
     },
-    // Ramp up to 50 VUs over the first 5 minutes
+    // Steady at 100 VUs over the next 5 minutes
+    {
+      duration: '5m',
+      target: 200
+    },
+    // Ramp up another 100 VUs over the next 5 minutes
+    {
+      duration: '5m',
+      target: 200
+    },
+    // Steady at 200 VUs over the next 5 minutes
     {
       duration: '5m',
       target: 50
-    } // Ramp down to  25 VUs for the next 10 minutes
+    } // Ramp down to  25 VUs for the next 5 minutes
     ],
     gracefulRampDown: '30s'
   }

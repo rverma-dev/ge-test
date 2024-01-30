@@ -128,7 +128,6 @@ var dbPort = __ENV.DB_PORT || "4000";
 var dbName = __ENV.DB_NAME || "test";
 var dbUser = __ENV.DB_USER || "root";
 var dbPassword = __ENV.TIDB_PASSWORD || "password";
-var geCount = __ENV.GE_COUNT || "115";
 var connectionString = "".concat(dbUser, ":").concat(dbPassword, "@tcp(").concat(dbHost, ":").concat(dbPort, ")/").concat(dbName, "?tls=skip-verify");
 var db = k6_x_sql__WEBPACK_IMPORTED_MODULE_0___default().open('mysql', connectionString);
 var inserts = new k6_metrics__WEBPACK_IMPORTED_MODULE_2__.Counter('rows_inserts');
@@ -152,11 +151,21 @@ var scenarios = {
       duration: '5m',
       target: 100
     },
-    // Ramp up to 50 VUs over the first 5 minutes
+    // Steady at 100 VUs over the next 5 minutes
+    {
+      duration: '5m',
+      target: 200
+    },
+    // Ramp up another 100 VUs over the next 5 minutes
+    {
+      duration: '5m',
+      target: 200
+    },
+    // Steady at 200 VUs over the next 5 minutes
     {
       duration: '5m',
       target: 50
-    } // Ramp down to  25 VUs for the next 10 minutes
+    } // Ramp down to  25 VUs for the next 5 minutes
     ],
     gracefulRampDown: '30s'
   }

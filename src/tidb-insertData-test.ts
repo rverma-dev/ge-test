@@ -10,7 +10,6 @@ const dbPort = __ENV.DB_PORT || "4000";
 const dbName = __ENV.DB_NAME || "test";
 const dbUser = __ENV.DB_USER || "root";
 const dbPassword = __ENV.TIDB_PASSWORD || "password";
-const geCount = __ENV.GE_COUNT || "115";
 
 const connectionString = `${dbUser}:${dbPassword}@tcp(${dbHost}:${dbPort})/${dbName}?tls=skip-verify`;
 const db = sql.open('mysql', connectionString);
@@ -28,8 +27,10 @@ let scenarios = {
         startVUs: 50,
         stages: [
             {duration: '5m', target: 100}, // Ramp up to 50 VUs over the first 5 minutes
-            {duration: '5m', target: 100}, // Ramp up to 50 VUs over the first 5 minutes
-            {duration: '5m', target: 50} // Ramp down to  25 VUs for the next 10 minutes
+            {duration: '5m', target: 100}, // Steady at 100 VUs over the next 5 minutes
+            {duration: '5m', target: 200}, // Ramp up another 100 VUs over the next 5 minutes
+            {duration: '5m', target: 200}, // Steady at 200 VUs over the next 5 minutes
+            {duration: '5m', target: 50} // Ramp down to  25 VUs for the next 5 minutes
         ],
         gracefulRampDown: '30s',
     },
